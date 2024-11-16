@@ -1,11 +1,8 @@
 # Crafter
-
-> A brief description of your project. Include the purpose, technology stack, and any relevant high-level information.
 Crafter is a web-based platform that enables users to easily manage their resumes and make job application and application tracking more simple. It enables users to customize their resumes based on the job descriptions 
 
 ## Table of Contents
 - [Tech Stack](#tech-stack)
-<!-- - [Getting Started](#getting-started) -->
 - [Project Structure](#project-structure)
 - [Development Guidelines](#development-guidelines)
 - [Branching Strategy](#branching-strategy)
@@ -13,16 +10,14 @@ Crafter is a web-based platform that enables users to easily manage their resume
 - [Code Review Process](#code-review-process)
 
 ## Tech Stack
-
 - **Frontend:** Next.js (React Framework)
 - **Backend:** Go (Golang)
 - **Database:** TBD
 
 ## Project Structure
-/
-├── frontend/               # Next.js frontend
-├── backend/                # Go backend
-└── README.md               # Project documentation
+- Frontend: (frontend)
+- Backend: (backend)
+- README.md (documentation)
 
 ## Developement Guidelines
 - Use feature branches for developing new features.
@@ -30,7 +25,6 @@ Crafter is a web-based platform that enables users to easily manage their resume
 
 ## Branching Strategy
 We follow the GitFlow branching strategy:
-
 - main: The stable branch; production-ready code.
 - develop: The active development branch.
 - Feature branches (feature/your-feature-name): Branches off from develop for adding new features.
