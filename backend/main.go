@@ -2,7 +2,9 @@ package main
 
 import (
 	"backend/database"
+	"fmt"
 	"os"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -14,6 +16,7 @@ func main() {
 	port := os.Getenv("PORT")
 
 	if port == "" {
+		fmt.Println("PORT is not found in the environment variable")
 		port = "8080"
 	}
 	router := gin.New()
