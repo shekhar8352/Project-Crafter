@@ -60,16 +60,20 @@ func GenerateAllTokens(email string, firstName string, lastName string, uid stri
 
 }
 
-func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) {
+func UpdateAllTokens(signedToken string, signedRefreshToken string, userId string) error {
 
 	var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+	defer cancel()
 
 	var updateObj primitive.D
 
 	updateObj = append(updateObj, bson.E{"token", signedToken})
 	updateObj = append(updateObj, bson.E{"refresh_token", signedRefreshToken})
 
-	Updated_at, _ := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+	Updated_at, err := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return err
+	}
 	updateObj = append(updateObj, bson.E{"updated_at", Updated_at})
 
 	upsert := true
@@ -78,7 +82,7 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 		Upsert: &upsert,
 	}
 
-	_, err := userCollection.UpdateOne(
+	_, err = userCollection.UpdateOne(
 		ctx,
 		filter,
 		bson.D{
@@ -86,14 +90,11 @@ func UpdateAllTokens(signedToken string, signedRefreshToken string, userId strin
 		},
 		&opt,
 	)
-	defer cancel()
 
 	if err != nil {
-		log.Panic(err)
-		return
+		return err
 	}
-	return
-
+	return nil
 }
 
 func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
@@ -122,5 +123,4 @@ func ValidateToken(signedToken string) (claims *SignedDetails, msg string) {
 	}
 
 	return claims, msg
-
 }

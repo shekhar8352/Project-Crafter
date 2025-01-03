@@ -21,16 +21,17 @@ const (
 
 type User struct {
 	ID              primitive.ObjectID `bson:"_id"`
+	User_id         string             `json:"user_id"`
 	First_name      *string            `json:"first_name" validate:"required,min=2,max=100"`
 	Last_name       *string            `json:"last_name" validate:"required,min=2,max=100"`
 	Date_of_birth   *string            `json:"date_of_birth" validate:"required"`
-	Password        *string            `json:"Password" validate:"required,min=6"`
-	Email           *string            `json:"phone" validate:"required"`
+	Password        *string            `json:"password" validate:"required,min=6"`
+	Email           *string            `json:"email" validate:"required"`
 	UserType        UserType           `json:"user_type" validate:"required,oneof=Student Professional"`
 	Experience      ExperienceLevel    `json:"experience_level" validate:"required,oneof=Fresher Entry-level Mid-level Senior-level"`
-	College         *string            `json:"college" validate:"min=2,max=100"`
-	Current_company *string            `json:"current_company" validate:"min=2,max=100"`
-	ResumeURLs      []string           `json:"resume_urls" validate:"required,dive,url"`
+	College         *string            `json:"college0"`
+	Current_company *string            `json:"current_company"`
+	ResumeURLs      []string           `json:"resume_urls" validate:"dive,url"`
 
 	Token         *string   `json:"token"`
 	Refresh_Token *string   `json:"refresh_token"`
