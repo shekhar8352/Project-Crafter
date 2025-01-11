@@ -5,6 +5,7 @@ import (
 	"backend/models"
 	"backend/utils"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -25,7 +26,23 @@ func HashPassword(password string) string {
 	if err != nil {
 		log.Panic(err)
 	}
-	return string(bytes)
+	return string(bytes);
+}
+
+func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
+	if userPassword == "" || providedPassword == "" {
+		return false, "password cannot be null"
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
+	check := true
+	msg := ""
+
+	if err != nil {
+		msg = "Password is incorrect"
+		check = false
+	}
+	return check, msg
 }
 
 func SignUp() gin.HandlerFunc {
@@ -85,5 +102,53 @@ func SignUp() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"msg": "user item was created successfully", "result": resultInsertionNumber})
+	}
+}
+
+func Login() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		var user models.User
+		var foundUser models.User
+
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		err := userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
+		if err != nil {
+			fmt.Println(err)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+			return
+		}
+
+		if foundUser.Password == nil || user.Password == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "password cannot be null"})
+			return
+		}
+
+		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
+		if !passwordIsValid {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		token, refreshToken, err := utils.GenerateAllTokens(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, foundUser.User_id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error generating tokens"})
+			return
+		}
+
+		err = utils.UpdateAllTokens(token, refreshToken, foundUser.User_id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error updating tokens"})
+			return
+		}
+
+		c.JSON(http.StatusOK, foundUser)
 	}
 }
