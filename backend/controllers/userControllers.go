@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func HashPassword(password string) string {
 	if err != nil {
 		log.Panic(err)
 	}
-	return string(bytes);
+	return string(bytes)
 }
 
 func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
@@ -150,5 +151,115 @@ func Login() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, foundUser)
+	}
+}
+
+func GetUsers() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		recordPerPage := 10
+		page := 1
+
+		if rpp, err := strconv.Atoi(c.Query("recordPerPage")); err == nil && rpp > 0 {
+			recordPerPage = rpp
+		}
+		if p, err := strconv.Atoi(c.Query("page")); err == nil && p > 0 {
+			page = p
+		}
+
+		startIndex := (page - 1) * recordPerPage
+
+		matchStage := bson.D{{"$match", bson.D{}}}
+		countStage := bson.D{{"$count", "total_count"}}
+		paginationStages := []bson.D{
+			{{"$skip", startIndex}},
+			{{"$limit", recordPerPage}},
+		}
+
+		projectStage := bson.D{
+			{"$project", bson.D{
+				{"user_id", 1},
+				{"first_name", 1},
+				{"last_name", 1},
+				{"email", 1},
+				{"user_type", 1},
+				{"experience_level", 1},
+				{"date_of_birth", 1},
+				{"resume_urls", 1},
+				{"college", 1},         // Include College
+				{"current_company", 1}, // Include Current_company // Include Refresh_Token
+			}},
+		}
+
+		totalUsersCursor, err := userCollection.Aggregate(ctx, mongo.Pipeline{matchStage, countStage})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while fetching user count"})
+			return
+		}
+		var totalCount []bson.M
+		if err := totalUsersCursor.All(ctx, &totalCount); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while counting users"})
+			return
+		}
+		totalUserCount := 0
+		if len(totalCount) > 0 {
+			if count, ok := totalCount[0]["total_count"].(int32); ok {
+				totalUserCount = int(count)
+			}
+		}
+
+		result, err := userCollection.Aggregate(ctx, mongo.Pipeline{
+			matchStage, paginationStages[0], paginationStages[1], projectStage})
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while listing user items"})
+			return
+		}
+
+		var users []bson.M
+		if err := result.All(ctx, &users); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching users"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"total_count":   totalUserCount,
+			"users":         users,
+			"page":          page,
+			"recordPerPage": recordPerPage,
+		})
+	}
+}
+
+func GetUserById() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		userId := c.Param("user_id")
+		if userId == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user_id parameter is required"})
+			return
+		}
+
+		var user models.User
+		err := userCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&user)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while retrieving user"})
+			}
+			return
+		}
+
+		if user.ID.IsZero() {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "retrieved user data is invalid"})
+			return
+		}
+
+		c.JSON(http.StatusOK, user)
 	}
 }
