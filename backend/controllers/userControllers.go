@@ -46,6 +46,22 @@ func VerifyPassword(userPassword string, providedPassword string) (bool, string)
 	return check, msg
 }
 
+func returnResponse(c *gin.Context, statusCode int, data interface{}) {
+	c.JSON(statusCode, gin.H{
+			"status":  "success",
+			"message": "Operation successful",
+			"data":    data,
+	})
+}
+
+// returnError sends a JSON response with the provided status code and error message.
+func returnError(c *gin.Context, statusCode int, errMessage string) {
+	c.JSON(statusCode, gin.H{
+			"status":  "error",
+			"message": errMessage,
+	})
+}
+
 func SignUp() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -243,35 +259,40 @@ func GetUserById() gin.HandlerFunc {
 
 		userId := c.Param("user_id")
 		if userId == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "user_id parameter is required"})
+			returnError(c, http.StatusBadRequest, "user_id parameter is required")
 			return
 		}
 
+		// Convert the userId to a MongoDB ObjectID
 		user_id, err := primitive.ObjectIDFromHex(userId)
-    if err != nil {
-        fmt.Println("Invalid ObjectID string:", err)
-        return
-    }
+		if err != nil {
+			returnError(c, http.StatusBadRequest, "Invalid ObjectID")
+			return
+		}
 
+		// Fetch the user from the database
 		var user models.User
 		err = userCollection.FindOne(ctx, bson.M{"_id": user_id}).Decode(&user)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
-				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+				returnError(c, http.StatusNotFound, "user not found")
 			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while retrieving user"})
+				returnError(c, http.StatusInternalServerError, "error occurred while retrieving user")
 			}
 			return
 		}
 
+		// Check if the user data is valid
 		if user.ID.IsZero() {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "retrieved user data is invalid"})
+			returnError(c, http.StatusInternalServerError, "retrieved user data is invalid")
 			return
 		}
 
-		c.JSON(http.StatusOK, user)
+		// Return the user object on success
+		returnResponse(c, http.StatusOK, user)
 	}
 }
+
 
 func UpdateUser() gin.HandlerFunc {
 	return func(c *gin.Context) {

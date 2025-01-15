@@ -1,9 +1,9 @@
 package utils
 
 import (
+	"backend/database"
 	"context"
 	"fmt"
-	"backend/database"
 	"log"
 	"os"
 	"time"
