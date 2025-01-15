@@ -263,3 +263,36 @@ func GetUserById() gin.HandlerFunc {
 		c.JSON(http.StatusOK, user)
 	}
 }
+
+func UpdateUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		userId := c.Param("user_id")
+		fmt.Println(userId)
+		if userId == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "user_id parameter is required"})
+			return
+		}
+
+		var user models.User	
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		_, err := userCollection.UpdateOne(ctx, bson.M{"user_id": userId}, bson.M{"$set": user})
+		if err != nil {
+			fmt.Println(err)
+			if err == mongo.ErrNoDocuments {
+				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
+			}
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "user updated successfully"})
+	}
+}

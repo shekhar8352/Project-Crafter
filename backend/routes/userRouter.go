@@ -10,4 +10,5 @@ func UserRoutes(incomingRoutes *gin.Engine) {
 	incomingRoutes.POST("/users/login", controllers.Login())
 	incomingRoutes.GET("/users", controllers.GetUsers())
 	incomingRoutes.GET("/users/:user_id", controllers.GetUserById())
+	incomingRoutes.PUT("/users/:user_id", controllers.UpdateUser())
 }
