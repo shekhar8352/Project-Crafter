@@ -86,9 +86,10 @@ func SignUp() gin.HandlerFunc {
 		user.Created_at = time.Now()
 		user.Updated_at = time.Now()
 		user.ID = primitive.NewObjectID()
-		user.User_id = user.ID.Hex()
 
-		token, refreshToken, err := utils.GenerateAllTokens(*user.Email, *user.First_name, *user.Last_name, user.User_id)
+		User_id := user.ID.Hex()
+
+		token, refreshToken, err := utils.GenerateAllTokens(*user.Email, *user.First_name, *user.Last_name, User_id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error generating tokens"})
 			return
@@ -138,13 +139,15 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		token, refreshToken, err := utils.GenerateAllTokens(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, foundUser.User_id)
+		User_id := foundUser.ID.Hex()
+
+		token, refreshToken, err := utils.GenerateAllTokens(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, User_id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error generating tokens"})
 			return
 		}
 
-		err = utils.UpdateAllTokens(token, refreshToken, foundUser.User_id)
+		err = utils.UpdateAllTokens(token, refreshToken, User_id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error updating tokens"})
 			return
@@ -180,7 +183,7 @@ func GetUsers() gin.HandlerFunc {
 
 		projectStage := bson.D{
 			{"$project", bson.D{
-				{"user_id", 1},
+				{"_id", 0},
 				{"first_name", 1},
 				{"last_name", 1},
 				{"email", 1},
@@ -244,8 +247,14 @@ func GetUserById() gin.HandlerFunc {
 			return
 		}
 
+		user_id, err := primitive.ObjectIDFromHex(userId)
+    if err != nil {
+        fmt.Println("Invalid ObjectID string:", err)
+        return
+    }
+
 		var user models.User
-		err := userCollection.FindOne(ctx, bson.M{"user_id": userId}).Decode(&user)
+		err = userCollection.FindOne(ctx, bson.M{"_id": user_id}).Decode(&user)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
 				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -270,29 +279,48 @@ func UpdateUser() gin.HandlerFunc {
 		defer cancel()
 
 		userId := c.Param("user_id")
-		fmt.Println(userId)
 		if userId == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "user_id parameter is required"})
 			return
 		}
 
-		var user models.User	
+		user_id, err := primitive.ObjectIDFromHex(userId)
+    if err != nil {
+        fmt.Println("Invalid ObjectID string:", err)
+        return
+    }
+
+		var user models.User
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		_, err := userCollection.UpdateOne(ctx, bson.M{"user_id": userId}, bson.M{"$set": user})
-		if err != nil {
-			fmt.Println(err)
-			if err == mongo.ErrNoDocuments {
-				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
-			}
-			return
-		}
+		user.ID = primitive.NilObjectID // Assuming the field is named ID in your User model
 
-		c.JSON(http.StatusOK, gin.H{"message": "user updated successfully"})
+		updateData := bson.M{
+			"$set": bson.M{
+				"first_name":    user.First_name,  // Add only fields that need to be updated
+				"last_name":     user.Last_name,
+				"email":         user.Email,
+				"date_of_birth": user.Date_of_birth,
+				"user_type":     user.UserType,
+				"experience_level":    user.Experience,
+				"college":         user.College,
+				"current_company": user.Current_company,
+				}, 
+			}
+
+			_, err = userCollection.UpdateOne(ctx, bson.M{"_id": user_id}, updateData)
+			if err != nil {
+				if err == mongo.ErrNoDocuments {
+					c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+				} else {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
+				}
+				return
+			}
+	
+			c.JSON(http.StatusOK, gin.H{"message": "user updated successfully"})
 	}
 }

@@ -21,7 +21,6 @@ const (
 
 type User struct {
 	ID              primitive.ObjectID `bson:"_id"`
-	User_id         string             `json:"user_id"`
 	First_name      *string            `json:"first_name" validate:"required,min=2,max=100"`
 	Last_name       *string            `json:"last_name" validate:"required,min=2,max=100"`
 	Date_of_birth   *string            `json:"date_of_birth" validate:"required"`
@@ -29,7 +28,7 @@ type User struct {
 	Email           *string            `json:"email" validate:"required"`
 	UserType        UserType           `json:"user_type" validate:"required,oneof=Student Professional"`
 	Experience      ExperienceLevel    `json:"experience_level" validate:"required,oneof=Fresher Entry-level Mid-level Senior-level"`
-	College         *string            `json:"college0"`
+	College         *string            `json:"college"`
 	Current_company *string            `json:"current_company"`
 	ResumeURLs      []string           `json:"resume_urls" validate:"dive,url"`
 
