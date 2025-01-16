@@ -48,17 +48,17 @@ func VerifyPassword(userPassword string, providedPassword string) (bool, string)
 
 func returnResponse(c *gin.Context, statusCode int, data interface{}) {
 	c.JSON(statusCode, gin.H{
-			"status":  "success",
-			"message": "Operation successful",
-			"data":    data,
+		"status":  "success",
+		"message": "Operation successful",
+		"data":    data,
 	})
 }
 
 // returnError sends a JSON response with the provided status code and error message.
 func returnError(c *gin.Context, statusCode int, errMessage string) {
 	c.JSON(statusCode, gin.H{
-			"status":  "error",
-			"message": errMessage,
+		"status":  "error",
+		"message": errMessage,
 	})
 }
 
@@ -137,7 +137,6 @@ func SignUp() gin.HandlerFunc {
 		})
 	}
 }
-
 
 func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -230,7 +229,7 @@ func GetUsers() gin.HandlerFunc {
 				{"experience_level", 1},
 				{"date_of_birth", 1},
 				{"resume_urls", 1},
-				{"college", 1},         
+				{"college", 1},
 				{"current_company", 1},
 			}},
 		}
@@ -281,7 +280,6 @@ func GetUsers() gin.HandlerFunc {
 	}
 }
 
-
 func GetUserById() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -323,7 +321,6 @@ func GetUserById() gin.HandlerFunc {
 	}
 }
 
-
 func UpdateUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -336,10 +333,10 @@ func UpdateUser() gin.HandlerFunc {
 		}
 
 		user_id, err := primitive.ObjectIDFromHex(userId)
-    if err != nil {
-        fmt.Println("Invalid ObjectID string:", err)
-        return
-    }
+		if err != nil {
+			fmt.Println("Invalid ObjectID string:", err)
+			return
+		}
 
 		var user models.User
 		if err := c.BindJSON(&user); err != nil {
@@ -351,27 +348,27 @@ func UpdateUser() gin.HandlerFunc {
 
 		updateData := bson.M{
 			"$set": bson.M{
-				"first_name":    user.First_name,  // Add only fields that need to be updated
-				"last_name":     user.Last_name,
-				"email":         user.Email,
-				"date_of_birth": user.Date_of_birth,
-				"user_type":     user.UserType,
-				"experience_level":    user.Experience,
-				"college":         user.College,
-				"current_company": user.Current_company,
-				}, 
-			}
+				"first_name":       user.First_name, // Add only fields that need to be updated
+				"last_name":        user.Last_name,
+				"email":            user.Email,
+				"date_of_birth":    user.Date_of_birth,
+				"user_type":        user.UserType,
+				"experience_level": user.Experience,
+				"college":          user.College,
+				"current_company":  user.Current_company,
+			},
+		}
 
-			_, err = userCollection.UpdateOne(ctx, bson.M{"_id": user_id}, updateData)
-			if err != nil {
-				if err == mongo.ErrNoDocuments {
-					c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-				} else {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
-				}
-				return
+		_, err = userCollection.UpdateOne(ctx, bson.M{"_id": user_id}, updateData)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
 			}
-	
-			c.JSON(http.StatusOK, gin.H{"message": "user updated successfully"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "user updated successfully"})
 	}
 }

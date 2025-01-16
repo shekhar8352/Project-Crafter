@@ -1,8 +1,8 @@
 package main
 
 import (
-	"backend/models"
 	"backend/controllers"
+	"backend/models"
 	"bytes"
 	"encoding/json"
 	"net/http"
@@ -43,7 +43,6 @@ func TestSignUp_Success(t *testing.T) {
 		Created_at:    time.Now(),
 		Updated_at:    time.Now(),
 		ID:            primitive.NewObjectID(),
-		User_id:       primitive.NewObjectID().Hex(),
 	}
 
 	jsonValue, _ := json.Marshal(user)
@@ -56,7 +55,6 @@ func TestSignUp_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "user item was created successfully")
 }
-
 
 // TestSignUp_MissingFields tests the signup endpoint with missing required fields
 //
@@ -88,7 +86,6 @@ func TestSignUp_MissingFields(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "error")
 }
 
-
 // TestSignUp_InvalidEnum tests the signup endpoint with invalid UserType and ExperienceLevel enums.
 //
 // The test attempts to create a new user with invalid UserType and ExperienceLevel enums
@@ -119,7 +116,6 @@ func TestSignUp_InvalidEnum(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "error")
 }
-
 
 // TestSignUp_DuplicateEmail tests the signup endpoint with a duplicate email
 //

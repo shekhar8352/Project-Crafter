@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
+	"backend/routes"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
-	"backend/routes"
 )
 
 var crafterCollection *mongo.Collection = database.OpenCollection(database.Client, "crafter")

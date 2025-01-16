@@ -3,20 +3,20 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-	"time"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
+	"os"
+	"time"
 )
 
 func DBinstance() *mongo.Client {
 	err := godotenv.Load(".env")
 	if err != nil {
-    log.Fatalf("Error loading .env file")
-  }
-	
+		log.Fatalf("Error loading .env file")
+	}
+
 	MongoDb := os.Getenv("DB_URL")
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(MongoDb))
