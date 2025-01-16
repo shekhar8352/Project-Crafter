@@ -69,59 +69,75 @@ func SignUp() gin.HandlerFunc {
 
 		var user models.User
 
+		// Bind the JSON body to the user model
 		if err := c.BindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			returnError(c, http.StatusBadRequest, err.Error())
 			return
 		}
 
+		// Validate the user data
 		validationErr := validate.Struct(user)
 		if validationErr != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			returnError(c, http.StatusBadRequest, validationErr.Error())
 			return
 		}
 
+		// Check if the email already exists
 		count, err := userCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while checking for the email"})
+			returnError(c, http.StatusInternalServerError, "error occurred while checking for the email")
 			return
 		}
 
 		if count > 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "this email already exists"})
+			returnError(c, http.StatusBadRequest, "this email already exists")
 			return
 		}
 
+		// Ensure password is not null
 		if user.Password == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password cannot be null"})
+			returnError(c, http.StatusBadRequest, "password cannot be null")
 			return
 		}
 
+		// Hash the password
 		password := HashPassword(*user.Password)
 		user.Password = &password
 
+		// Set creation and update timestamps
 		user.Created_at = time.Now()
 		user.Updated_at = time.Now()
-		user.ID = primitive.NewObjectID()
 
+		// Generate a new ObjectID for the user
+		user.ID = primitive.NewObjectID()
 		User_id := user.ID.Hex()
 
+		// Generate JWT tokens
 		token, refreshToken, err := utils.GenerateAllTokens(*user.Email, *user.First_name, *user.Last_name, User_id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error generating tokens"})
+			returnError(c, http.StatusInternalServerError, "error generating tokens")
 			return
 		}
+
+		// Set tokens in the user model
 		user.Token = &token
 		user.Refresh_Token = &refreshToken
 
+		// Insert the user into the database
 		resultInsertionNumber, insertErr := userCollection.InsertOne(ctx, user)
 		if insertErr != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user item was not created"})
+			returnError(c, http.StatusInternalServerError, "user item was not created")
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"msg": "user item was created successfully", "result": resultInsertionNumber})
+		// Return success response
+		returnResponse(c, http.StatusOK, gin.H{
+			"msg":    "user item was created successfully",
+			"result": resultInsertionNumber,
+		})
 	}
 }
+
 
 func Login() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -133,25 +149,25 @@ func Login() gin.HandlerFunc {
 		var foundUser models.User
 
 		if err := c.BindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			returnError(c, http.StatusBadRequest, err.Error())
 			return
 		}
 
 		err := userCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
 		if err != nil {
 			fmt.Println(err)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
+			returnError(c, http.StatusUnauthorized, "Cannot find user with these credentials")
 			return
 		}
 
 		if foundUser.Password == nil || user.Password == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "password cannot be null"})
+			returnError(c, http.StatusBadRequest, "Password cannot be null")
 			return
 		}
 
 		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
 		if !passwordIsValid {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			returnError(c, http.StatusBadRequest, msg)
 			return
 		}
 
@@ -159,17 +175,20 @@ func Login() gin.HandlerFunc {
 
 		token, refreshToken, err := utils.GenerateAllTokens(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, User_id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error generating tokens"})
+			returnError(c, http.StatusInternalServerError, "error generating tokens")
 			return
 		}
 
 		err = utils.UpdateAllTokens(token, refreshToken, User_id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error updating tokens"})
+			returnError(c, http.StatusInternalServerError, "error updating tokens")
 			return
 		}
 
-		c.JSON(http.StatusOK, foundUser)
+		returnResponse(c, http.StatusOK, gin.H{
+			"token":         token,
+			"refresh_token": refreshToken,
+		})
 	}
 }
 
@@ -181,13 +200,17 @@ func GetUsers() gin.HandlerFunc {
 		recordPerPage := 10
 		page := 1
 
+		// Get 'recordPerPage' query parameter if provided
 		if rpp, err := strconv.Atoi(c.Query("recordPerPage")); err == nil && rpp > 0 {
 			recordPerPage = rpp
 		}
+
+		// Get 'page' query parameter if provided
 		if p, err := strconv.Atoi(c.Query("page")); err == nil && p > 0 {
 			page = p
 		}
 
+		// Calculate the starting index for pagination
 		startIndex := (page - 1) * recordPerPage
 
 		matchStage := bson.D{{"$match", bson.D{}}}
@@ -207,21 +230,24 @@ func GetUsers() gin.HandlerFunc {
 				{"experience_level", 1},
 				{"date_of_birth", 1},
 				{"resume_urls", 1},
-				{"college", 1},         // Include College
-				{"current_company", 1}, // Include Current_company // Include Refresh_Token
+				{"college", 1},         
+				{"current_company", 1},
 			}},
 		}
 
+		// Fetch total user count
 		totalUsersCursor, err := userCollection.Aggregate(ctx, mongo.Pipeline{matchStage, countStage})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while fetching user count"})
+			returnError(c, http.StatusInternalServerError, "error occurred while fetching user count")
 			return
 		}
+
 		var totalCount []bson.M
 		if err := totalUsersCursor.All(ctx, &totalCount); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while counting users"})
+			returnError(c, http.StatusInternalServerError, "error occurred while counting users")
 			return
 		}
+
 		totalUserCount := 0
 		if len(totalCount) > 0 {
 			if count, ok := totalCount[0]["total_count"].(int32); ok {
@@ -229,21 +255,24 @@ func GetUsers() gin.HandlerFunc {
 			}
 		}
 
+		// Fetch paginated list of users
 		result, err := userCollection.Aggregate(ctx, mongo.Pipeline{
-			matchStage, paginationStages[0], paginationStages[1], projectStage})
+			matchStage, paginationStages[0], paginationStages[1], projectStage,
+		})
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while listing user items"})
+			returnError(c, http.StatusInternalServerError, "error occurred while listing user items")
 			return
 		}
 
 		var users []bson.M
 		if err := result.All(ctx, &users); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error fetching users"})
+			returnError(c, http.StatusInternalServerError, "error fetching users")
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
+		// Return success response
+		returnResponse(c, http.StatusOK, gin.H{
 			"total_count":   totalUserCount,
 			"users":         users,
 			"page":          page,
@@ -251,6 +280,7 @@ func GetUsers() gin.HandlerFunc {
 		})
 	}
 }
+
 
 func GetUserById() gin.HandlerFunc {
 	return func(c *gin.Context) {
