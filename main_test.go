@@ -1,8 +1,8 @@
 package main
 
 import (
-	"backend/controllers"
-	"backend/models"
+	"crafter/controllers"
+	"crafter/models"
 	"bytes"
 	"encoding/json"
 	"net/http"

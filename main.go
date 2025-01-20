@@ -1,11 +1,12 @@
 package main
 
 import (
-	"backend/database"
+	"crafter/database"
 	"fmt"
 	"os"
 
-	"backend/routes"
+	"crafter/routes"
+
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )

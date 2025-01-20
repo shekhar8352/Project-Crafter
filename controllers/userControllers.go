@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"backend/database"
-	"backend/models"
-	"backend/utils"
+	"crafter/database"
+	"crafter/models"
+	"crafter/utils"
 	"context"
 	"fmt"
 	"log"
