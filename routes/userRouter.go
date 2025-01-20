@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"backend/controllers"
+	"crafter/controllers"
 	"github.com/gin-gonic/gin"
 )
 

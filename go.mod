@@ -1,4 +1,4 @@
-module backend
+module crafter
 
 go 1.22.5
 
