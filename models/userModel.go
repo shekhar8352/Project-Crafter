@@ -20,20 +20,19 @@ const (
 )
 
 type User struct {
-	ID              primitive.ObjectID `bson:"_id"`
-	First_name      *string            `json:"first_name" validate:"required,min=2,max=100"`
-	Last_name       *string            `json:"last_name" validate:"required,min=2,max=100"`
-	Date_of_birth   *string            `json:"date_of_birth" validate:"required"`
-	Password        *string            `json:"password" validate:"required,min=6"`
-	Email           *string            `json:"email" validate:"required"`
-	UserType        UserType           `json:"user_type" validate:"required,oneof=Student Professional"`
-	Experience      ExperienceLevel    `json:"experience_level" validate:"required,oneof=Fresher Entry-level Mid-level Senior-level"`
-	College         *string            `json:"college"`
-	Current_company *string            `json:"current_company"`
-	ResumeURLs      []string           `json:"resume_urls" validate:"dive,url"`
-
-	Token         *string   `json:"token"`
-	Refresh_Token *string   `json:"refresh_token"`
-	Created_at    time.Time `json:"created_at"`
-	Updated_at    time.Time `json:"updated_at"`
+	ID              primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	FirstName       string             `bson:"first_name" json:"first_name" validate:"required,min=2,max=100"`
+	LastName        string             `bson:"last_name" json:"last_name" validate:"required,min=2,max=100"`
+	DateOfBirth     time.Time          `bson:"date_of_birth" json:"date_of_birth" validate:"required"`
+	Password        string             `bson:"password" json:"password" validate:"required,min=6"`
+	Email           string             `bson:"email" json:"email" validate:"required,email"`
+	UserType        UserType           `bson:"user_type" json:"user_type" validate:"required,oneof=Student Professional"`
+	Experience      ExperienceLevel    `bson:"experience_level" json:"experience_level" validate:"required,oneof=Fresher Entry-level Mid-level Senior-level"`
+	College         *string            `bson:"college,omitempty" json:"college,omitempty"`
+	CurrentCompany  *string            `bson:"current_company,omitempty" json:"current_company,omitempty"`
+	ResumeURLs      []string           `bson:"resume_urls,omitempty" json:"resume_urls,omitempty" validate:"dive,url"`
+	Token           *string            `bson:"token,omitempty" json:"token,omitempty"`
+	RefreshToken    *string            `bson:"refresh_token,omitempty" json:"refresh_token,omitempty"`
+	CreatedAt       time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt       time.Time          `bson:"updated_at" json:"updated_at"`
 }
