@@ -334,7 +334,7 @@ func UpdateUser() gin.HandlerFunc {
 
 		user_id, err := primitive.ObjectIDFromHex(userId)
 		if err != nil {
-			fmt.Println("Invalid ObjectID string:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ObjectID"})
 			return
 		}
 
@@ -344,11 +344,18 @@ func UpdateUser() gin.HandlerFunc {
 			return
 		}
 
-		user.ID = primitive.NilObjectID // Assuming the field is named ID in your User model
+		// Prevent overwriting the ID field
+		user.ID = primitive.NilObjectID
+
+		// Validate the user data
+		if validationErr := validate.Struct(user); validationErr != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr.Error()})
+			return
+		}
 
 		updateData := bson.M{
 			"$set": bson.M{
-				"first_name":       user.FirstName, // Add only fields that need to be updated
+				"first_name":       user.FirstName,
 				"last_name":        user.LastName,
 				"email":            user.Email,
 				"date_of_birth":    user.DateOfBirth,
@@ -356,16 +363,18 @@ func UpdateUser() gin.HandlerFunc {
 				"experience_level": user.Experience,
 				"college":          user.College,
 				"current_company":  user.CurrentCompany,
+				"updated_at":       time.Now(),
 			},
 		}
 
-		_, err = userCollection.UpdateOne(ctx, bson.M{"_id": user_id}, updateData)
+		result, err := userCollection.UpdateOne(ctx, bson.M{"_id": user_id}, updateData)
 		if err != nil {
-			if err == mongo.ErrNoDocuments {
-				c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
-			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error occurred while updating user"})
+			return
+		}
+
+		if result.MatchedCount == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
 
