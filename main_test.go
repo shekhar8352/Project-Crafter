@@ -17,10 +17,6 @@ import (
 
 var mockUserCollection = []models.User{}
 
-func stringPointer(s string) *string {
-	return &s
-}
-
 // TestSignUp_Success tests the successful creation of a new user
 //
 // The test creates a new user with all the required fields and
@@ -31,17 +27,18 @@ func TestSignUp_Success(t *testing.T) {
 
 	router := gin.Default()
 	router.POST("/users/signup", controllers.SignUp())
+	dateOfBirth, _ := time.Parse(time.RFC3339, "2002-09-02T00:00:00Z")
 
 	user := models.User{
-		First_name:    stringPointer("John"),
-		Last_name:     stringPointer("Doe"),
-		Date_of_birth: stringPointer("02-09-2002"),
-		Password:      stringPointer("Password123"),
-		Email:         stringPointer("john.doe@example.com"),
+		FirstName:    "John",
+		LastName:     "Doe",
+		DateOfBirth: dateOfBirth,
+		Password:      "Password123",
+		Email:         "john.doe@example.com",
 		UserType:      models.Professional,
 		Experience:    models.Fresher,
-		Created_at:    time.Now(),
-		Updated_at:    time.Now(),
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 		ID:            primitive.NewObjectID(),
 	}
 
@@ -65,12 +62,13 @@ func TestSignUp_MissingFields(t *testing.T) {
 
 	router := gin.Default()
 	router.POST("/users/signup", controllers.SignUp())
+	dateOfBirth, _ := time.Parse(time.RFC3339, "2002-09-02T00:00:00Z")
 
 	user := models.User{
-		Last_name:     stringPointer("Doe"),
-		Date_of_birth: stringPointer("02-09-2002"),
-		Password:      stringPointer("Password123"),
-		Email:         stringPointer("john.doe@example.com"),
+		LastName:    "Doe",
+		DateOfBirth: dateOfBirth,
+		Password:      "Password123",
+		Email:         "john.doe@example.com",
 		UserType:      models.Professional,
 		Experience:    models.Fresher,
 	}
@@ -95,13 +93,15 @@ func TestSignUp_InvalidEnum(t *testing.T) {
 
 	router := gin.Default()
 	router.POST("/users/signup", controllers.SignUp())
+	dateOfBirth, _ := time.Parse(time.RFC3339, "2002-09-02T00:00:00Z")
+
 
 	user := models.User{
-		First_name:    stringPointer("John"),
-		Last_name:     stringPointer("Doe"),
-		Date_of_birth: stringPointer("02-09-2002"),
-		Password:      stringPointer("Password123"),
-		Email:         stringPointer("john.doe@example.com"),
+		FirstName:    "John",
+		LastName:     "Doe",
+		DateOfBirth: dateOfBirth,
+		Password:      "Password123",
+		Email:         "john.doe@example.com",
 		UserType:      "InvalidType",       // Invalid UserType
 		Experience:    "InvalidExperience", // Invalid ExperienceLevel
 	}
@@ -127,19 +127,20 @@ func TestSignUp_DuplicateEmail(t *testing.T) {
 
 	// Assume there's already a user in the system
 	existingUser := models.User{
-		Email: stringPointer("john.doe@example.com"),
+		Email: "john.doe@example.com",
 	}
 	mockUserCollection = append(mockUserCollection, existingUser)
 
 	router := gin.Default()
 	router.POST("/users/signup", controllers.SignUp())
+	dateOfBirth, _ := time.Parse(time.RFC3339, "2002-09-02T00:00:00Z")
 
 	user := models.User{
-		First_name:    stringPointer("John"),
-		Last_name:     stringPointer("Doe"),
-		Date_of_birth: stringPointer("02-09-2002"),
-		Password:      stringPointer("Password123"),
-		Email:         stringPointer("john.doe@example.com"), // Duplicate email
+		FirstName:    "John",
+		LastName:     "Doe",
+		DateOfBirth: dateOfBirth,
+		Password:      "Password123",
+		Email:         "john.doe@example.com", // Duplicate email
 		UserType:      models.Professional,
 		Experience:    models.Fresher,
 	}
