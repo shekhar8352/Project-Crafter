@@ -95,25 +95,25 @@ func SignUp() gin.HandlerFunc {
 		}
 
 		// Ensure password is not null
-		if user.Password == nil {
+		if user.Password == "" {
 			returnError(c, http.StatusBadRequest, "password cannot be null")
 			return
 		}
 
 		// Hash the password
-		password := HashPassword(*user.Password)
-		user.Password = &password
+		password := HashPassword(user.Password)
+		user.Password = password
 
 		// Set creation and update timestamps
-		user.Created_at = time.Now()
-		user.Updated_at = time.Now()
+		user.CreatedAt = time.Now()
+		user.UpdatedAt = time.Now()
 
 		// Generate a new ObjectID for the user
 		user.ID = primitive.NewObjectID()
 		User_id := user.ID.Hex()
 
 		// Generate JWT tokens
-		token, refreshToken, err := utils.GenerateAllTokens(*user.Email, *user.First_name, *user.Last_name, User_id)
+		token, refreshToken, err := utils.GenerateAllTokens(user.Email, user.FirstName, user.LastName, User_id)
 		if err != nil {
 			returnError(c, http.StatusInternalServerError, "error generating tokens")
 			return
@@ -121,7 +121,7 @@ func SignUp() gin.HandlerFunc {
 
 		// Set tokens in the user model
 		user.Token = &token
-		user.Refresh_Token = &refreshToken
+		user.RefreshToken = &refreshToken
 
 		// Insert the user into the database
 		resultInsertionNumber, insertErr := userCollection.InsertOne(ctx, user)
@@ -159,12 +159,12 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		if foundUser.Password == nil || user.Password == nil {
+		if foundUser.Password == "" || user.Password == "" {
 			returnError(c, http.StatusBadRequest, "Password cannot be null")
 			return
 		}
 
-		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
+		passwordIsValid, msg := VerifyPassword(user.Password, foundUser.Password)
 		if !passwordIsValid {
 			returnError(c, http.StatusBadRequest, msg)
 			return
@@ -172,7 +172,7 @@ func Login() gin.HandlerFunc {
 
 		User_id := foundUser.ID.Hex()
 
-		token, refreshToken, err := utils.GenerateAllTokens(*foundUser.Email, *foundUser.First_name, *foundUser.Last_name, User_id)
+		token, refreshToken, err := utils.GenerateAllTokens(foundUser.Email, foundUser.FirstName, foundUser.LastName, User_id)
 		if err != nil {
 			returnError(c, http.StatusInternalServerError, "error generating tokens")
 			return
@@ -348,14 +348,14 @@ func UpdateUser() gin.HandlerFunc {
 
 		updateData := bson.M{
 			"$set": bson.M{
-				"first_name":       user.First_name, // Add only fields that need to be updated
-				"last_name":        user.Last_name,
+				"first_name":       user.FirstName, // Add only fields that need to be updated
+				"last_name":        user.LastName,
 				"email":            user.Email,
-				"date_of_birth":    user.Date_of_birth,
+				"date_of_birth":    user.DateOfBirth,
 				"user_type":        user.UserType,
 				"experience_level": user.Experience,
 				"college":          user.College,
-				"current_company":  user.Current_company,
+				"current_company":  user.CurrentCompany,
 			},
 		}
 
